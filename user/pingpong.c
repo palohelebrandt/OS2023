@@ -1,42 +1,39 @@
 #include "kernel/types.h"
 #include "kernel/stat.h"
 #include "user/user.h"
-
 int main() {
-    int pipes[2]; // Pole pre rúry, index 0 je pre čítanie, index 1 je pre zápis
+    int piperw[2];
 
-    pipe(pipes);
+    pipe(piperw);
 
-    int child_pid = fork(); // Vytvorenie detského procesu
+    int child_pid = fork();
 
     if (child_pid == -1) {
         exit(0);
     }
     char buffer[20];
-    if (child_pid == 0) { // Detský proces
+    if (child_pid == 0) {
 
-        read(pipes[0], &buffer, sizeof(buffer));
+        read(piperw[0], &buffer, sizeof(buffer));
 
         int  my_pid = getpid();
-        printf("%d: received ping\n", my_pid, buffer);
-	write(pipes[1], "pong", 4);
+        printf("Child pid = %d: prečítal: %s\n", my_pid, buffer);
+	write(piperw[1], "pong", 4);
 
-
-        close(pipes[0]);
-	close(pipes[1]);
+        close(piperw[0]);
+	close(piperw[1]);
         exit(0);
-    } else { // Rodičovský proces
+    } else {
 
+        write(piperw[1],"ping", 4);
+        read(piperw[0], buffer, sizeof(buffer));
+        int my_pid = getpid();
 
-        write(pipes[1],"ping", 4);
-        read(pipes[0], buffer, sizeof(buffer));
-	int my_pid = getpid();
-        printf("%d: received %s\n", my_pid, buffer);
+        printf("Parent pid = %d prečítal: %s\n", my_pid, buffer);
 
-	close(pipes[0]);
-        close(pipes[1]); // Zatvoriť zápisný koniec rúry
+	close(piperw[0]);
+        close(piperw[1]);
         exit(0);
     }
-
     exit(0);
 }
